@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#723FFF">
+
+<title>孙茜 · 作品集 ｜ UI / 视觉设计师</title>
+<meta name="description" content="孙茜的作品集：APP &amp; AI 智能体设计、数据可视化、图标 &amp; 字体、平面 &amp; 电商。UI 设计师，2023–2027。">
+<meta name="author" content="孙茜">
+
+<!-- 链接分享预览卡：粘进微信 / 邮件 / 招聘系统时展开成卡片，而不是一行光秃秃的网址 -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="孙茜 · 作品集 ｜ UI / 视觉设计师">
+<meta property="og:description" content="APP &amp; AI 智能体设计 · 数据可视化 · 图标 &amp; 字体 · 平面 &amp; 电商">
+<meta property="og:image" content="assets/img/og-cover.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%23723FFF'/><text x='50' y='70' font-size='58' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle'>孙</text></svg>">
+
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<!-- 顶部滚动进度条 -->
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<!-- 顶部导航：向下滚隐藏、向上滚出现，避免与每页自带的窗口条打架 -->
+<header class="nav" id="nav">
+  <a class="nav__brand" href="#cover">
+    <span class="nav__dot"></span>
+    孙茜<span class="nav__brand-sub">作品集</span>
+  </a>
+
+  <nav class="nav__links" id="navLinks">
+    <a href="#about">关于我</a>
+    <a href="#toc">目录</a>
+    <a href="#app">01 APP&amp;AI</a>
+    <a href="#dataviz">02 可视化</a>
+    <a href="#icon">03 图标字体</a>
+    <a href="#graphic">04 平面电商</a>
+    <a href="#end" class="nav__links-contact">联系我</a>
+  </nav>
+
+  <a class="nav__cta" href="#end">联系我</a>
+
+  <button class="nav__burger" id="burger" aria-label="展开菜单" aria-expanded="false">
+    <span></span><span></span>
+  </button>
+</header>
+
+<!-- 右侧章节轨道 -->
+<nav class="rail" id="rail" aria-label="章节导航">
+  <a href="#cover"   data-target="cover"><i></i><em>封面</em></a>
+  <a href="#about"   data-target="about"><i></i><em>关于我</em></a>
+  <a href="#toc"     data-target="toc"><i></i><em>目录</em></a>
+  <a href="#app"     data-target="app"><i></i><em>01 APP&amp;AI智能体</em></a>
+  <a href="#dataviz" data-target="dataviz"><i></i><em>02 数据可视化</em></a>
+  <a href="#icon"    data-target="icon"><i></i><em>03 图标&amp;字体</em></a>
+  <a href="#graphic" data-target="graphic"><i></i><em>04 平面&amp;电商</em></a>
+  <a href="#end"     data-target="end"><i></i><em>联系我</em></a>
+</nav>
+
+<main>
+
+  <!-- ── 封面 ─────────────────────────────────────────── -->
+  <section class="sec sec--paper" id="cover" data-label="封面">
+    <div class="stage stage--cover" id="coverStage">
+      <img class="stage__img" data-page="cover" width="1920" height="1080"
+           alt="作品集封面：Mac 风格的窗口，标题「作品集」，孙茜，2023–2027" fetchpriority="high" decoding="async">
+      <!-- 点击区域（比画面里画的密码框大一圈，方便手机点） -->
+      <button class="unlock" id="unlock" aria-label="解锁，进入作品集"
+              title="点击解锁，开启我的设计世界"></button>
+      <!-- 视觉光环：按画面宽度等比贴合那个密码框 -->
+      <span class="unlock-ring" aria-hidden="true"></span>
+    </div>
+  </section>
+
+  <!-- ── 关于我 ───────────────────────────────────────── -->
+  <section class="sec sec--ink" id="about" data-label="关于我">
+    <div class="stage">
+      <img class="stage__img" data-page="about" width="1920" height="1080"
+           alt="关于我：@孙茜 UI 设计师，技能掌握 Ps / Ai / Figma / Axure 等，项目经验与自我评价"
+           loading="lazy" decoding="async">
+    </div>
+  </section>
+
+  <!-- ── 目录（图上四张卡片可点击跳转）─────────────────── -->
+  <section class="sec sec--violet" id="toc" data-label="目录">
+    <div class="stage" id="tocStage">
+      <img class="stage__img" data-page="toc" width="1920" height="1080"
+           alt="目录：01 APP&amp;AI智能体、02 数据可视化、03 图标&amp;字体、04 平面&amp;电商"
+           loading="lazy" decoding="async">
+      <a class="toc-hit toc-hit--1" href="#app"     aria-label="跳到 01 APP&amp;AI智能体"></a>
+      <a class="toc-hit toc-hit--2" href="#dataviz" aria-label="跳到 02 数据可视化"></a>
+      <a class="toc-hit toc-hit--3" href="#icon"    aria-label="跳到 03 图标&amp;字体"></a>
+      <a class="toc-hit toc-hit--4" href="#graphic" aria-label="跳到 04 平面&amp;电商"></a>
+    </div>
+  </section>
+
+  <!-- ── 01 APP & AI 智能体 ───────────────────────────── -->
+  <section class="sec sec--ink" id="app" data-label="01 APP&amp;AI智能体">
+    <div class="strip" data-strip="ch1"></div>
+  </section>
+
+  <!-- ── 02 数据可视化 ────────────────────────────────── -->
+  <section class="sec sec--ink" id="dataviz" data-label="02 数据可视化">
+    <div class="strip" data-strip="ch2"></div>
+  </section>
+
+  <!-- ── 03 图标 & 字体 ───────────────────────────────── -->
+  <section class="sec sec--ink" id="icon" data-label="03 图标&amp;字体">
+    <div class="strip" data-strip="ch3"></div>
+  </section>
+
+  <!-- ── 04 平面 & 电商 ───────────────────────────────── -->
+  <section class="sec sec--ink" id="graphic" data-label="04 平面&amp;电商">
+    <div class="strip" data-strip="ch4"></div>
+  </section>
+
+  <!-- ── 尾页 + 真实联系方式 ──────────────────────────── -->
+  <section class="sec sec--paper sec--end" id="end" data-label="联系我">
+    <div class="stage">
+      <img class="stage__img" data-page="end" width="1920" height="1080"
+           alt="Thanks for watching"
+           loading="lazy" decoding="async">
+    </div>
+
+    <div class="contact">
+      <p class="contact__eyebrow">THANKS FOR WATCHING</p>
+      <h2 class="contact__title">联系我</h2>
+      <p class="contact__lead">期待与你聊聊设计。</p>
+
+      <div class="contact__rows">
+        <a class="contact__row" href="tel:+8617615705582">
+          <span class="contact__k">电话</span>
+          <span class="contact__v">176-1570-5582</span>
+        </a>
+        <a class="contact__row" href="mailto:sq162028@163.com">
+          <span class="contact__k">邮箱</span>
+          <span class="contact__v">sq162028@163.com</span>
+        </a>
+      </div>
+    </div>
+
+    <footer class="foot">
+      <span>© 2023–2027 孙茜 · UI / 视觉设计师</span>
+      <span class="foot__sep">·</span>
+      <span>本页由设计稿导出</span>
+    </footer>
+  </section>
+
+</main>
+
+<!-- 回到顶部 -->
+<button class="totop" id="totop" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 19V5M5 12l7-7 7 7"/>
+  </svg>
+</button>
+
+<!-- 手机端提示：16:9 的画面在手机上很小，点开放大才能看清细节 -->
+<div class="zoom-hint" id="zoomHint">点按画面可放大查看</div>
+
+<!-- 全屏放大：面试官看 UI 细节必需 -->
+<div class="lbox" id="lbox" role="dialog" aria-modal="true" aria-label="图片放大查看" hidden>
+  <div class="lbox__bar">
+    <span class="lbox__label" id="lboxLabel"></span>
+    <span class="lbox__tip">滚轮 / 双指缩放 · 拖动平移 · Esc 关闭</span>
+    <button class="lbox__close" id="lboxClose" aria-label="关闭">✕</button>
+  </div>
+  <div class="lbox__viewport" id="lboxViewport">
+    <img class="lbox__img" id="lboxImg" alt="">
+  </div>
+</div>
+
+<script src="assets/js/manifest.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>
