@@ -76,6 +76,7 @@
   var navLinks = $$('.nav__links a[href^="#"]');
   var lastY = window.scrollY;
   var ticking = false;
+  var mNarrow = window.matchMedia('(max-width: 1080px)');
 
   function setActive(id) {
     railLinks.forEach(function (a) {
@@ -97,8 +98,17 @@
 
     // 向下滚收起导航、向上滚放出来，免得和每页自带的窗口条打架
     if (!nav.classList.contains('is-open')) {
-      if (y > lastY && y > 240) nav.classList.add('is-hidden');
-      else nav.classList.remove('is-hidden');
+      if (mNarrow.matches) {
+        // 手机上封面只有 219px 高，导航浮在上面会同时踩两个坑：
+        // 盖住封面自己的「2023-2027」，以及白字压白底直接看不见。
+        // 所以顶部一律不显示，滚起来之后再按「上滚出现 / 下滚隐藏」走。
+        if (y < 80 || y > lastY) nav.classList.add('is-hidden');
+        else nav.classList.remove('is-hidden');
+      } else if (y > lastY && y > 240) {
+        nav.classList.add('is-hidden');
+      } else {
+        nav.classList.remove('is-hidden');
+      }
     }
     lastY = y;
 

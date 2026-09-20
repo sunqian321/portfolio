@@ -57,6 +57,17 @@ a{color:inherit}
   transition:transform .32s var(--ease),background .3s,border-color .3s,
              backdrop-filter .3s,-webkit-backdrop-filter .3s;
 }
+/* 顶部透明时垫一层竖向渐变。封面在桌面是紫底（白字看得见），
+   在手机上却是白底（白字全隐形，连汉堡图标都没了），
+   垫一层深色渐变才能两种底上都读得出来。 */
+.nav::before{
+  content:"";position:absolute;inset:0;z-index:-1;
+  pointer-events:none;
+  background:linear-gradient(180deg,rgba(19,19,19,.78),rgba(19,19,19,0));
+  transition:opacity .3s;
+}
+.nav.is-solid::before,
+.nav.is-open::before{opacity:0}
 .nav.is-solid,
 .nav.is-open{
   background:rgba(19,19,19,.72);
