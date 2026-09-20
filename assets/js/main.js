@@ -85,16 +85,24 @@
   var progress = $('#progress');
   var totop = $('#totop');
   var sections = $$('.sec');
-  var railLinks = $$('.rail a');
   var navLinks = $$('.nav__links a[href^="#"]');
   var lastY = window.scrollY;
   var ticking = false;
   var mNarrow = window.matchMedia('(max-width: 1080px)');
+  var mReduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  /* 尺寸是要"读"的，读一次会让浏览器立刻算一遍布局。以前放在每帧的
+     update() 里读，等于强制每帧重新布局一次 —— 强机器看不出来，弱机器上
+     就是滚动发涩。改成只在真正可能变化时量一次。 */
+  var secTops = [];
+  var pageMax = 0;
+
+  function measure() {
+    secTops = sections.map(function (s) { return s.offsetTop; });
+    pageMax = document.documentElement.scrollHeight - window.innerHeight;
+  }
 
   function setActive(id) {
-    railLinks.forEach(function (a) {
-      a.classList.toggle('is-active', a.dataset.target === id);
-    });
     navLinks.forEach(function (a) {
       a.classList.toggle('is-active', a.getAttribute('href') === '#' + id);
     });
@@ -104,8 +112,7 @@
     ticking = false;
     var y = window.scrollY;
 
-    var max = document.documentElement.scrollHeight - window.innerHeight;
-    progress.style.width = (max > 0 ? clamp(y / max, 0, 1) * 100 : 0) + '%';
+    progress.style.transform = 'scaleX(' + (pageMax > 0 ? clamp(y / pageMax, 0, 1) : 0) + ')';
 
     nav.classList.toggle('is-solid', y > 90);
 
@@ -131,7 +138,7 @@
     var probe = y + window.innerHeight * 0.35;
     var current = sections[0];
     for (var i = 0; i < sections.length; i++) {
-      if (sections[i].offsetTop <= probe) current = sections[i];
+      if (secTops[i] <= probe) current = sections[i];
     }
     if (current) setActive(current.id);
   }
@@ -140,12 +147,46 @@
     if (!ticking) { ticking = true; window.requestAnimationFrame(update); }
   }, { passive: true });
 
-  window.addEventListener('resize', update);
+  window.addEventListener('resize', function () { measure(); update(); });
+
+  /* ---------------------------------------------------------
+     锚点跳转：近的平滑滚，跨屏的直接瞬移
+
+     整页十万像素高。如果交给 CSS 的 scroll-behavior:smooth，
+     点一次「联系我」会变成横穿全页、长达一分钟的动画，沿途把
+     整站图片全部解码一遍 —— 弱显卡机器上就是一路卡过去。
+     --------------------------------------------------------- */
+  function goTo(el) {
+    var far = Math.abs(el.offsetTop - window.scrollY) > window.innerHeight * 2;
+    var root = document.documentElement;
+    root.style.scrollBehavior = (far || mReduce.matches) ? 'auto' : 'smooth';
+    el.scrollIntoView({ block: 'start' });
+    root.style.scrollBehavior = '';
+  }
+
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('a[href^="#"]');
+    if (!a) return;
+    var el = document.getElementById(a.getAttribute('href').slice(1));
+    if (!el) return;
+    e.preventDefault();
+    closeMenu();
+    goTo(el);
+    history.replaceState(null, '', a.getAttribute('href'));
+  });
+
+  totop.addEventListener('click', goTo.bind(null, document.body));
+
+  measure();
   update();
 
-  totop.addEventListener('click', function () {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
+  // 图片是后插进来的、字体也可能迟一步换掉，尺寸会变。用 ResizeObserver
+  // 盯着，变了才重量一次，而不是每帧去读。
+  if (window.ResizeObserver) {
+    new ResizeObserver(measure).observe(document.body);
+  } else {
+    window.addEventListener('load', measure);
+  }
 
   /* ---------------------------------------------------------
      4. 手机端汉堡菜单
@@ -182,7 +223,7 @@
       coverStage.classList.add('is-unlocking');
       setTimeout(function () {
         var about = document.getElementById('about');
-        if (about) about.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (about) goTo(about);
       }, 380);
       setTimeout(function () {
         coverStage.classList.remove('is-unlocking');

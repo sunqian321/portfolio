@@ -19,7 +19,9 @@
 *,*::before,*::after{box-sizing:border-box}
 
 html{
-  scroll-behavior:smooth;
+  /* 刻意不写 scroll-behavior:smooth。全页十万像素高，CSS 平滑滚动会让一次
+     锚点跳转变成一分钟的动画、沿途把整站图片都解码一遍，弱显卡机器上就是
+     一路卡过去。改由 main.js 判断距离：近的平滑滚，跨屏的直接瞬移。 */
   scroll-padding-top:var(--nav-h);
   -webkit-text-size-adjust:100%;
 }
@@ -39,10 +41,13 @@ a{color:inherit}
 
 /* ── 顶部滚动进度条 ─────────────────────────────────────── */
 .progress{
-  position:fixed;top:0;left:0;height:3px;width:0;
+  position:fixed;top:0;left:0;height:3px;width:100%;
+  /* 用 scaleX 而不是 width：width 每帧都要重新布局 + 重绘，
+     scaleX 只是合成层里的一次变换，交给显卡做，不占主线程。 */
+  transform:scaleX(0);transform-origin:0 50%;
   background:linear-gradient(90deg,var(--violet),#B18CFF);
   z-index:60;
-  transition:width .1s linear;
+  will-change:transform;
 }
 
 /* ── 顶部导航 ───────────────────────────────────────────── */
@@ -54,8 +59,7 @@ a{color:inherit}
   /* 顶部时完全透明，免得压住封面自带的窗口栏；滚动后才浮出毛玻璃底 */
   background:transparent;
   border-bottom:1px solid transparent;
-  transition:transform .32s var(--ease),background .3s,border-color .3s,
-             backdrop-filter .3s,-webkit-backdrop-filter .3s;
+  transition:transform .32s var(--ease),background .3s,border-color .3s;
 }
 /* 顶部透明时垫一层竖向渐变。封面在桌面是紫底（白字看得见），
    在手机上却是白底（白字全隐形，连汉堡图标都没了），
@@ -70,9 +74,10 @@ a{color:inherit}
 .nav.is-open::before{opacity:0}
 .nav.is-solid,
 .nav.is-open{
-  background:rgba(19,19,19,.72);
-  backdrop-filter:blur(16px) saturate(160%);
-  -webkit-backdrop-filter:blur(16px) saturate(160%);
+  /* 这里原来是 backdrop-filter:blur(16px)。毛玻璃在滚动时每帧都要重新
+     采样背后的画面，弱显卡（Windows 核显）上很贵，是滚动卡顿的常见来源。
+     改成不透明的深色底，观感几乎一样，代价是零。 */
+  background:rgba(19,19,19,.95);
   border-bottom-color:rgba(255,255,255,.08);
 }
 .nav.is-hidden{transform:translateY(-100%)}
@@ -121,37 +126,6 @@ a{color:inherit}
 .nav__burger[aria-expanded="true"] span:first-child{transform:translateY(4px) rotate(45deg)}
 .nav__burger[aria-expanded="true"] span:last-child{transform:translateY(-4px) rotate(-45deg)}
 
-/* ── 右侧章节轨道 ───────────────────────────────────────── */
-.rail{
-  position:fixed;right:clamp(10px,1.6vw,22px);top:50%;
-  transform:translateY(-50%);
-  display:flex;flex-direction:column;gap:1px;
-  z-index:45;
-}
-.rail a{
-  display:flex;align-items:center;justify-content:flex-end;gap:10px;
-  padding:7px 0;text-decoration:none;
-}
-.rail i{
-  display:block;width:7px;height:7px;border-radius:50%;
-  background:rgba(255,255,255,.22);
-  transition:background .28s var(--ease),transform .28s var(--ease),box-shadow .28s;
-  flex:0 0 auto;
-}
-.rail em{
-  font-style:normal;font-size:12px;color:#fff;white-space:nowrap;
-  background:rgba(0,0,0,.62);padding:3px 9px;border-radius:6px;
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-  opacity:0;transform:translateX(6px);
-  transition:opacity .28s var(--ease),transform .28s var(--ease);
-}
-.rail a:hover em{opacity:1;transform:none}
-.rail a.is-active i{
-  background:var(--violet);transform:scale(1.3);
-  box-shadow:0 0 0 4px rgba(114,63,255,.28);
-}
-.rail a.is-active em{opacity:1;transform:none}
-
 /* ── 区块 ───────────────────────────────────────────────── */
 .sec{position:relative}
 .sec--paper{background:var(--paper)}
@@ -181,6 +155,16 @@ a{color:inherit}
   aspect-ratio:5.98/1;
   border-radius:999px;
   pointer-events:none;
+  /* 常亮的柔光：保证动画波谷时这个可点区域也看得见 */
+  box-shadow:0 0 16px 3px rgba(114,63,255,.40);
+}
+/* 脉冲交给 ::after 的 transform + opacity。
+   原来直接动画 box-shadow —— 那是每帧重绘，而且 infinite 永不停止，
+   等于让浏览器一直有活干。这两个属性只走合成层，不占主线程。 */
+.unlock-ring::after{
+  content:"";position:absolute;inset:-2px;
+  border-radius:inherit;
+  border:2px solid rgba(114,63,255,.55);
   animation:breathe 2.6s var(--ease) infinite;
 }
 .unlock{
@@ -194,15 +178,10 @@ a{color:inherit}
   background:transparent;cursor:pointer;
 }
 .unlock:hover ~ .unlock-ring{background:rgba(114,63,255,.10)}
-/* 两层：外层是常亮的柔光（保证任何时刻都看得见这个可点区域），
-   内层是扩散的脉冲。只做脉冲的话，动画波谷时热区是完全隐形的。 */
 @keyframes breathe{
-  0%  {box-shadow:0 0 0 0 rgba(114,63,255,.42),
-                  0 0 16px 3px rgba(114,63,255,.40)}
-  70% {box-shadow:0 0 0 16px rgba(114,63,255,0),
-                  0 0 16px 3px rgba(114,63,255,.40)}
-  100%{box-shadow:0 0 0 0 rgba(114,63,255,.42),
-                  0 0 16px 3px rgba(114,63,255,.40)}
+  0%  {transform:scale(1);   opacity:.85}
+  70% {transform:scale(1.22);opacity:0}
+  100%{transform:scale(1.22);opacity:0}
 }
 
 /* 点击后：画面轻轻推进 + 泛紫光 */
@@ -356,8 +335,7 @@ a{color:inherit}
   position:fixed;left:50%;bottom:20px;transform:translateX(-50%);
   z-index:44;
   padding:8px 16px;border-radius:999px;
-  background:rgba(19,19,19,.86);color:#fff;font-size:12.5px;
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  background:rgba(19,19,19,.94);color:#fff;font-size:12.5px;
   border:1px solid rgba(255,255,255,.12);
   transition:opacity .4s var(--ease);
 }
@@ -372,13 +350,11 @@ a{color:inherit}
 
   .nav__burger{display:flex}
   .nav__cta{display:none}
-  .rail{display:none}
 
   .nav__links{
     position:fixed;top:var(--nav-h);left:0;right:0;
     flex-direction:column;gap:2px;margin:0;padding:10px 12px 16px;
-    background:rgba(19,19,19,.97);
-    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    background:rgba(19,19,19,.985);
     border-bottom:1px solid rgba(255,255,255,.08);
     opacity:0;pointer-events:none;transform:translateY(-10px);
     transition:opacity .24s var(--ease),transform .24s var(--ease);
@@ -411,11 +387,12 @@ a{color:inherit}
 
 /* 尊重「减少动态效果」偏好 */
 @media (prefers-reduced-motion:reduce){
-  html{scroll-behavior:auto}
   *,*::before,*::after{
     animation-duration:.001ms !important;
     animation-iteration-count:1 !important;
     transition-duration:.001ms !important;
   }
+  /* 脉冲停了，得给个静态的边，否则这个可点区域会完全隐形 */
   .unlock-ring{box-shadow:0 0 0 3px rgba(114,63,255,.45)}
+  .unlock-ring::after{opacity:0}
 }
