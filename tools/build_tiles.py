@@ -4,6 +4,10 @@
 
 把 PDF 的每一页渲染成 WebP，长页自动切片，供 index.html 滚动展示。
 
+每张图会导出三档宽度（1440 / 1920 / 2880），再由 HTML 的 srcset 让浏览器
+按自己的屏幕挑一档下载。这样手机只下小图（省流量、解码快），Retina 笔记本
+拿到 2880 的真实像素（不糊）。原理见本文件末尾的说明。
+
 用法：
     python3 tools/build_tiles.py
 
@@ -30,13 +34,27 @@ SRC_PDF = Path("/Users/zaizai/Documents/作品集/全作品集/pdf/9.20/孙茜-�
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "assets" / "img"
 
-SCALE = 1.0          # 1.0 = 1920px 宽。想更清晰改成 1.5，体积约翻倍
-WEBP_QUALITY = 76    # 实测：q82 = 12.1MB，q76 = 9.4MB，两者在 100% 原始像素下几乎看不出差别
-                     # （也测过 AVIF：同画质只小 8%，不值得多一套文件和兼容风险）
-TILE_H = 2000        # 切片高度。别超过 2000 —— iPhone Safari 解码超大图会失败
-BAND_H = 10000       # 渲染时按此高度分带以控制内存，必须是 TILE_H 的整数倍
+# 母版按 1.5 倍渲染 = 2880px 宽。不能低于 2880，
+# 否则 Retina 屏（1440 CSS px × 2 倍像素）就得靠插值放大，画面发糊。
+MASTER_SCALE = 1.5
 
-OG_SIZE = (1200, 630)  # 链接分享预览卡尺寸（微信 / 邮件 / 招聘系统）
+# 每张图输出的三档宽度。浏览器按「屏幕 CSS 宽 × 像素比」选最小够用的一档：
+#   手机 390px@3x  需要 1170  → 拿 1440
+#   笔记本 1440@1x 需要 1440  → 拿 1440
+#   台式 1920@1x   需要 1920  → 拿 1920
+#   Retina 1440@2x 需要 2880  → 拿 2880
+TIER_WIDTHS = [1440, 1920, 2880]
+DEFAULT_TIER = 1920          # 不支持 srcset 的老浏览器兜底用这档
+
+WEBP_QUALITY = 80            # UI 界面里小字多，q76 会把笔画压糊
+
+# 切片高度，单位是「母版像素」。3000 @2880 ≈ 2000 @1920，
+# 即和旧版同样大小 —— 2880×3000 = 8.6M 像素，远低于 iOS Safari
+# 约 16M 的解码上限，安全。
+TILE_H = 3000
+BAND_H = 15000               # 渲染分带高度，必须是 TILE_H 的整数倍
+
+OG_SIZE = (1200, 630)        # 链接分享预览卡尺寸（微信 / 邮件 / 招聘系统）
 
 # ── 页面 → 章节映射 ────────────────────────────────────────────────
 # (PDF 页码, 输出子目录, 单独成图时的文件名)
@@ -65,21 +83,16 @@ PAGES = [
 
 
 def render_band(doc, page_no, y0_px, y1_px):
-    """渲染某页 [y0_px, y1_px) 这段像素高度，返回 PIL Image。"""
+    """按母版倍率渲染某页 [y0_px, y1_px) 这段高度，返回 PIL Image。"""
     page = doc[page_no - 1]
-    scale = SCALE
     clip = fitz.Rect(
         page.rect.x0,
-        page.rect.y0 + y0_px / scale,
+        page.rect.y0 + y0_px / MASTER_SCALE,
         page.rect.x1,
-        page.rect.y0 + y1_px / scale,
+        page.rect.y0 + y1_px / MASTER_SCALE,
     )
-    pix = page.get_pixmap(matrix=fitz.Matrix(scale, scale), clip=clip)
+    pix = page.get_pixmap(matrix=fitz.Matrix(MASTER_SCALE, MASTER_SCALE), clip=clip)
     return Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-
-
-def save_webp(img, path):
-    img.save(path, "WEBP", quality=WEBP_QUALITY, method=6)
 
 
 def edge_bg(img):
@@ -93,13 +106,46 @@ def edge_bg(img):
     return "#%02X%02X%02X" % Counter(strip.getdata()).most_common(1)[0][0]
 
 
+def emit(master, dest_dir, stem):
+    """把母版图写成三档 WebP，返回清单条目。"""
+    srcs = []
+    for w in TIER_WIDTHS:
+        if w == master.width:
+            tier = master
+        elif w < master.width:
+            tier = master.resize((w, max(1, round(master.height * w / master.width))),
+                                 Image.LANCZOS)
+        else:
+            continue          # 母版没那么宽，跳过（正常不会发生）
+        out = dest_dir / f"{stem}-{w}.webp"
+        tier.save(out, "WEBP", quality=WEBP_QUALITY, method=6)
+        srcs.append((w, f"assets/img/{dest_dir.name}/{out.name}"))
+
+    by_w = dict(srcs)
+    default_w = DEFAULT_TIER if DEFAULT_TIER in by_w else srcs[-1][0]
+    src_rel = by_w[default_w]
+    # 清单里 w/h 用默认档的真实尺寸，供 <img width height> 占位、避免布局跳动
+    dw, dh = (master.width, master.height) if default_w == master.width else (
+        default_w, round(master.height * default_w / master.width))
+
+    return {
+        "src": src_rel,
+        "srcset": ", ".join(f"{url} {w}w" for w, url in srcs),
+        "hi": by_w[max(by_w)],          # 放大查看时用最大档，看得清细节
+        "w": dw,
+        "h": dh,
+        "bg": edge_bg(master),
+    }, [u for _, u in srcs]
+
+
 def main():
     if not SRC_PDF.exists():
         sys.exit(f"找不到源文件：{SRC_PDF}")
 
     doc = fitz.open(SRC_PDF)
     print(f"源文件：{SRC_PDF.name}")
-    print(f"页数：{doc.page_count}，渲染倍率：{SCALE}x，WebP 画质：{WEBP_QUALITY}")
+    print(f"页数：{doc.page_count}   母版倍率：{MASTER_SCALE}x   档位：{TIER_WIDTHS}   "
+          f"WebP 画质：{WEBP_QUALITY}")
     print(f"输出到：{OUT_DIR}\n")
 
     if OUT_DIR.exists():
@@ -109,6 +155,7 @@ def main():
     manifest = {}
     pages = {}
     total_bytes = 0
+    tier_bytes = {w: 0 for w in TIER_WIDTHS}
     t0 = time.time()
 
     for page_no, chapter, standalone in PAGES:
@@ -116,52 +163,49 @@ def main():
             sys.exit(f"第 {page_no} 页不存在，PDF 只有 {doc.page_count} 页")
 
         page = doc[page_no - 1]
-        px_h = round(page.rect.height * SCALE)
-        px_w = round(page.rect.width * SCALE)
-
-        if standalone:
-            dest_dir = OUT_DIR / chapter
-            dest_dir.mkdir(parents=True, exist_ok=True)
-            img = render_band(doc, page_no, 0, px_h)
-            out = dest_dir / f"{standalone}.webp"
-            save_webp(img, out)
-            size = out.stat().st_size
-            total_bytes += size
-            pages[standalone] = {"src": f"assets/img/{chapter}/{out.name}",
-                                 "w": img.width, "h": img.height, "bg": edge_bg(img)}
-            print(f"  p{page_no:>2}  {px_w}x{px_h}  →  {chapter}/{out.name}  {size/1024:.0f} KB")
-            continue
-
-        # 长页：分带渲染，带边界与切片边界对齐，保证接缝无痕
-        tiles = []
-        band_start = 0
-        while band_start < px_h:
-            band_end = min(band_start + BAND_H, px_h)
-            band = render_band(doc, page_no, band_start, band_end)
-            # 把这一带切成 TILE_H 高的瓦片
-            offset = 0
-            while offset < band.height:
-                piece = band.crop((0, offset, band.width, min(offset + TILE_H, band.height)))
-                tiles.append(piece)
-                offset += TILE_H
-            band_start = band_end
-
+        px_h = round(page.rect.height * MASTER_SCALE)
+        px_w = round(page.rect.width * MASTER_SCALE)
         dest_dir = OUT_DIR / chapter
         dest_dir.mkdir(parents=True, exist_ok=True)
-        bucket = manifest.setdefault(chapter, [])
-        for piece in tiles:
+
+        # 本页要输出的所有母版图（单页 = 一整张；长页 = 切片们）
+        if standalone:
+            masters = [render_band(doc, page_no, 0, px_h)]
+            stems = [standalone]
+            kind = f"{chapter}/{standalone}"
+        else:
+            masters, stems = [], []
+            bucket_len = len(manifest.get(chapter, []))
+            band_start = 0
+            while band_start < px_h:
+                band_end = min(band_start + BAND_H, px_h)
+                band = render_band(doc, page_no, band_start, band_end)
+                offset = 0
+                while offset < band.height:
+                    masters.append(band.crop(
+                        (0, offset, band.width, min(offset + TILE_H, band.height))))
+                    offset += TILE_H
+                band_start = band_end
             # 编号在整个章节内连续，不能每页从 00 重新数——否则后面的页会覆盖前面的
-            name = f"tile-{len(bucket):02d}.webp"
-            out = dest_dir / name
-            save_webp(piece, out)
-            total_bytes += out.stat().st_size
-            bucket.append({"src": f"assets/img/{chapter}/{name}",
-                           "w": piece.width, "h": piece.height, "bg": edge_bg(piece)})
-        print(f"  p{page_no:>2}  {px_w}x{px_h}  →  {chapter}  {len(tiles)} 张切片"
-              f"（累计 {len(bucket)}）")
+            stems = [f"tile-{bucket_len + i:02d}" for i in range(len(masters))]
+            kind = f"{chapter}  {len(masters)} 张切片"
+
+        bucket = manifest.setdefault(chapter, []) if not standalone else None
+        for master, stem in zip(masters, stems):
+            entry, urls = emit(master, dest_dir, stem)
+            if standalone:
+                pages[standalone] = entry
+            else:
+                bucket.append(entry)
+            for u in urls:
+                sz = (ROOT / u).stat().st_size
+                total_bytes += sz
+                tier_bytes[int(u.rsplit("-", 1)[1].split(".")[0])] += sz
+
+        print(f"  p{page_no:>2}  {px_w}x{px_h}  →  {kind}（累计 {len(bucket) if bucket else 1}）")
 
     # ── 分享预览卡（og:image）─────────────────────────────────────
-    cover = Image.open(OUT_DIR / "ch0" / "cover.webp")
+    cover = Image.open(OUT_DIR / "ch0" / "cover-2880.webp")
     cw, ch = cover.size
     tw, th = OG_SIZE
     ratio = max(tw / cw, th / ch)
@@ -182,8 +226,13 @@ def main():
     (ROOT / "assets" / "js" / "manifest.js").write_text(js, encoding="utf-8")
 
     n_tiles = sum(len(v) for v in manifest.values())
-    print(f"\n完成：{n_tiles} 张章节切片 + 4 张单页 + 1 张预览卡")
-    print(f"全站图片总量：{total_bytes/1e6:.1f} MB")
+    n_files = n_tiles * len(TIER_WIDTHS) + len(pages) * len(TIER_WIDTHS) + 1
+    print(f"\n完成：{n_tiles} 张章节切片 + {len(pages)} 张单页，每张 {len(TIER_WIDTHS)} 档")
+    print(f"文件数：{n_files}")
+    print(f"仓库图片总量：{total_bytes/1e6:.1f} MB")
+    for w in TIER_WIDTHS:
+        print(f"    {w:>4} 档：{tier_bytes[w]/1e6:>5.1f} MB   "
+              f"（{'手机 / 笔记本' if w == 1440 else '台式' if w == 1920 else 'Retina 屏'}）")
     print(f"耗时：{time.time()-t0:.1f} 秒")
 
 

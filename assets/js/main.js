@@ -12,16 +12,23 @@
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var clamp = function (v, a, b) { return Math.min(b, Math.max(a, v)); };
 
+  /* 告诉浏览器这张图在页面上占多宽，它才能从 srcset 里挑对档位。
+     画面容器是 width:100%，但有个 max-width:1920px，所以宽屏上不再等于 100vw。 */
+  var SIZES = '(min-width: 1920px) 1920px, 100vw';
+
   /* ---------------------------------------------------------
      1. 单页画面：套用清单里的真实尺寸和底色
      --------------------------------------------------------- */
   $$('img[data-page]').forEach(function (img) {
     var p = PAGES[img.dataset.page];
     if (!p) return;
-    img.src = p.src;
+    img.sizes = SIZES;
+    img.srcset = p.srcset;
+    img.src = p.src;                  // 老浏览器兜底
     img.width = p.w;
     img.height = p.h;
     img.style.background = p.bg;
+    img.dataset.hi = p.hi;            // 放大查看时改用最大档
   });
 
   /* ---------------------------------------------------------
@@ -35,6 +42,7 @@
     entries.forEach(function (e) {
       if (!e.isIntersecting) return;
       var img = e.target;
+      if (img.dataset.srcset) img.srcset = img.dataset.srcset;
       if (img.dataset.src) img.src = img.dataset.src;
       lazyIO.unobserve(img);
     });
@@ -49,7 +57,12 @@
 
     tiles.forEach(function (t, i) {
       var img = document.createElement('img');
+      // srcset 也延后到进入视口才设：提前设上去浏览器会立刻开始下载，懒加载就白做了。
+      // sizes 可以先给，它只是告诉浏览器该挑哪一档，本身不触发请求。
       img.dataset.src = t.src;
+      img.dataset.srcset = t.srcset;
+      img.dataset.hi = t.hi;
+      img.sizes = SIZES;
       img.width = t.w;
       img.height = t.h;
       img.style.background = t.bg;      // 加载完成前先铺上该切片自己的底色，避免闪白/闪黑
@@ -246,13 +259,14 @@
       var sec = strip ? strip.closest('.sec') : null;
       var label = sec ? (sec.dataset.label || '') : '';
       list = imgs.map(function (im, i) {
-        return { src: im.dataset.src || im.src, label: label + '　' + (i + 1) + ' / ' + imgs.length };
+        // 放大查看时直接取最大档（2880），看清 UI 细节——这正是面试官要看的东西
+        return { src: im.dataset.hi || im.dataset.src || im.src,
+                 label: label + '　' + (i + 1) + ' / ' + imgs.length };
       });
       index = imgs.indexOf(img);
     } else {
-      var page = img.dataset.page;
       var host = img.closest('.sec');
-      list = [{ src: img.dataset.src || img.src,
+      list = [{ src: img.dataset.hi || img.dataset.src || img.src,
                 label: (host && host.dataset.label) || '' }];
       index = 0;
     }

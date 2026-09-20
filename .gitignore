@@ -3,3 +3,7 @@
 
 # 39MB 源 PDF：不入库，见 README「已知限制」
 sunqian-portfolio.pdf
+
+# 百度网盘同步的残留文件，不是本项目的东西
+*.baiduyun.uploading.cfg
+*.baiduyun.p.downloading
