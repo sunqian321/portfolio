@@ -23,7 +23,7 @@ window.PORTFOLIO_TILES = {
       "hi": "assets/img/ch1/tile-02-2880.webp",
       "w": 1920,
       "h": 2000,
-      "bg": "#713EFF"
+      "bg": "#723FFF"
     },
     {
       "src": "assets/img/ch1/tile-03-1920.webp",
@@ -31,7 +31,7 @@ window.PORTFOLIO_TILES = {
       "hi": "assets/img/ch1/tile-03-2880.webp",
       "w": 1920,
       "h": 2000,
-      "bg": "#713EFF"
+      "bg": "#723FFF"
     },
     {
       "src": "assets/img/ch1/tile-04-1920.webp",
@@ -39,7 +39,7 @@ window.PORTFOLIO_TILES = {
       "hi": "assets/img/ch1/tile-04-2880.webp",
       "w": 1920,
       "h": 2000,
-      "bg": "#713EFF"
+      "bg": "#723FFF"
     },
     {
       "src": "assets/img/ch1/tile-05-1920.webp",
@@ -47,7 +47,7 @@ window.PORTFOLIO_TILES = {
       "hi": "assets/img/ch1/tile-05-2880.webp",
       "w": 1920,
       "h": 2000,
-      "bg": "#713EFF"
+      "bg": "#723FFF"
     },
     {
       "src": "assets/img/ch1/tile-06-1920.webp",
@@ -55,7 +55,7 @@ window.PORTFOLIO_TILES = {
       "hi": "assets/img/ch1/tile-06-2880.webp",
       "w": 1920,
       "h": 2000,
-      "bg": "#713EFF"
+      "bg": "#723FFF"
     },
     {
       "src": "assets/img/ch1/tile-07-1920.webp",
@@ -193,7 +193,7 @@ window.PORTFOLIO_TILES = {
       "hi": "assets/img/ch2/tile-00-2880.webp",
       "w": 1920,
       "h": 1080,
-      "bg": "#131313"
+      "bg": "#141414"
     },
     {
       "src": "assets/img/ch2/tile-01-1920.webp",
@@ -259,7 +259,7 @@ window.PORTFOLIO_TILES = {
       "hi": "assets/img/ch3/tile-00-2880.webp",
       "w": 1920,
       "h": 1080,
-      "bg": "#131313"
+      "bg": "#141414"
     },
     {
       "src": "assets/img/ch3/tile-01-1920.webp",
@@ -293,7 +293,7 @@ window.PORTFOLIO_TILES = {
       "hi": "assets/img/ch4/tile-00-2880.webp",
       "w": 1920,
       "h": 1080,
-      "bg": "#131313"
+      "bg": "#141414"
     },
     {
       "src": "assets/img/ch4/tile-01-1920.webp",
@@ -341,7 +341,7 @@ window.PORTFOLIO_TILES = {
       "hi": "assets/img/ch4/tile-06-2880.webp",
       "w": 1920,
       "h": 1893,
-      "bg": "#B6345F"
+      "bg": "#B63460"
     },
     {
       "src": "assets/img/ch4/tile-07-1920.webp",
@@ -496,7 +496,7 @@ window.PORTFOLIO_PAGES = {
     "hi": "assets/img/ch0/toc-2880.webp",
     "w": 1920,
     "h": 1080,
-    "bg": "#F7F7F7"
+    "bg": "#F8F8F8"
   },
   "end": {
     "src": "assets/img/ch0/end-1920.webp",

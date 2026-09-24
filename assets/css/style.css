@@ -214,7 +214,11 @@ a{color:inherit}
 .toc-hit--4{left:74.2cqw; width:20.0cqw}
 
 /* ── 长图切片序列 ───────────────────────────────────────── */
-.strip{font-size:0;line-height:0}
+/* max-width 必须和上面 .stage 的一致。少了这一条，在 2560 / 4K 这类宽屏上
+   就会出现「目录页居中留黑边、下面的项目却铺满整屏」的错位；而且 main.js 的
+   sizes 写的是最大 1920px，浏览器只会取 1920 档，铺满 2560 等于把 1920 的图
+   拉大 33%，字会糊。 */
+.strip{max-width:1920px;margin:0 auto;font-size:0;line-height:0}
 .strip img{
   display:block;width:100%;height:auto;
   vertical-align:top;
